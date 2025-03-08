@@ -63,3 +63,10 @@ Commands:
     - `b/f`: Trace history backward and forward
     - `r`: Once more get list of nodes, topics or etc.
     - `q`: Terminate app
+
+## 编译与执行
+```
+python3 -m venv .virtual && source .virtual/bin/activate
+python3 -m pip install  .
+./.virtual/bin/rtui
+```
