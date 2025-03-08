@@ -43,7 +43,30 @@ class InspectApp(App):
             if self._ros.available(t):
                 self.add_mode(t.name, RosEntityInspection(ros, t))
 
+    def topic_echo(self, topic_name: str) -> None:
+        """启动一个新的 GNOME 终端，并持续打印 self 的值，防止终端自动关闭。"""
+        command = f'ros2 topic echo {topic_name}'
+        title = f"{command}"
+        
+        # 先杀死可能存在的同名终端进程
+        kill_command = f'pkill -f "{title}"'
+        subprocess.run(kill_command, shell=True)
+
+        # _ros: RosClient
+        # _init_target: RosEntityType
+        # _history: History[RosEntity] = History(20)
+        terminal_cmd = f'gnome-terminal --title "{title}" -- bash -c "{command}; read line"'
+        subprocess.Popen(terminal_cmd, shell=True)
+        self.notify(f"Echo {command}")
+
     def show_ros_entity(self, entity: RosEntity, append_history: bool = True) -> None:
+        if entity_back := self._history.current():
+            if entity_back.type == RosEntityType.MsgType:
+                if entity.type == RosEntityType.Topic:
+                    # self.notify(f"{entity.type.name},{entity.name}")
+                    self.topic_echo(entity.name)
+                    return
+
         self.switch_mode(entity.type.name)
         screen: RosEntityInspection = self.screen
         screen.set_entity_name(entity.name)
@@ -68,20 +91,7 @@ class InspectApp(App):
     def action_toggle_echo(self) -> None:
         if entity := self._history.current():
             if entity.type == RosEntityType.Topic:
-                """启动一个新的 GNOME 终端，并持续打印 self 的值，防止终端自动关闭。"""
-                command = f'ros2 topic echo {entity.name}'
-                title = f"{command}"
-                
-                # 先杀死可能存在的同名终端进程
-                kill_command = f'pkill -f "{title}"'
-                subprocess.run(kill_command, shell=True)
-
-                # _ros: RosClient
-                # _init_target: RosEntityType
-                # _history: History[RosEntity] = History(20)
-                terminal_cmd = f'gnome-terminal --title "{title}" -- bash -c "{command}; read line"'
-                subprocess.Popen(terminal_cmd, shell=True)
-                self.notify(f"Echo {command}")
+                self.topic_echo(entity.name)
             else:
                 self.notify(f"不是一个话题")
 
