@@ -138,7 +138,7 @@ class RosCommandHelper:
         self._run_command(f'ros2 interface show {msg_name}')
 
     def srv_type(self, srv_name: str) -> None:
-        self._run_command(f'ros2 service type {srv_name}')
+        self._run_command(f'ros2 interface show {srv_name}')
 
     def action_type(self, action_name: str) -> None:
         self._run_command(f'ros2 action type {action_name}')
