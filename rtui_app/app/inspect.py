@@ -57,22 +57,26 @@ class InspectApp(App):
         self.mouse_click_timer = None
 
     def show_ros_entity(self, entity: RosEntity, append_history: bool = True) -> None:
+
+        self.notify(f"{entity.type.name},{entity.name}")
         if self.fix:
-            # if entity_back := self._history.current():            # 获取当前的 entity
-            #     if entity_back.type == RosEntityType.MsgType:
-            self.ros_helper.execute_command(entity)
-            return
+            if entity_back := self._history.current():            # 获取当前的 entity
+                if entity_back.type != entity.type or entity_back.name != entity.name:   # 确保2次点击的 entity 类型和名字不一致
+                    self.notify(f"2 {entity_back.type.name},{entity_back.name}")
+                    self.ros_helper.execute_command(entity)
+                else:
+                    self.notify(f"type and name is same")
+        else:
+            if entity.type == RosEntityType.Service:
+                self.notify(f"{entity.type.name} 不允许跳转")
+                return
 
-        if entity.type == RosEntityType.Service:
-            self.notify(f"{entity.type.name} 不允许跳转")
-            return
+            self.switch_mode(entity.type.name)
+            screen: RosEntityInspection = self.screen
+            screen.set_entity_name(entity.name)
 
-        self.switch_mode(entity.type.name)
-        screen: RosEntityInspection = self.screen
-        screen.set_entity_name(entity.name)
-
-        if append_history:
-            self._history.append(entity)
+            if append_history:
+                self._history.append(entity)
 
         if self.mouse_click_timer:
             self.mouse_click_timer.cancel()
@@ -140,6 +144,10 @@ class RosCommandHelper:
         self._run_command(f'ros2 action type {action_name}')
 
     def _run_command(self, command: str) -> None:
+        # 先杀死可能存在的同名终端进程
+        kill_command = f'pkill -f "{command}"'
+        subprocess.run(kill_command, shell=True)
+
         title = f"{command}"
         terminal_cmd = f'gnome-terminal --title "{title}" -- bash -c "echo {command}; echo "---";{command}; read line"'
         subprocess.Popen(terminal_cmd, shell=True)
@@ -149,7 +157,7 @@ class MouseEventHandler:
     def __init__(self, app: InspectApp):
         self.app = app
         self.last_click_time = 0
-        self.double_click_threshold = 0.2
+        self.double_click_threshold = 0.3
         self.single_click_timer = None
 
     def handle_mouse_event(self, event: MouseDown) -> None:
